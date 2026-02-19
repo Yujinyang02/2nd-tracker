@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Installment Payment Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      padding: 30px;
+    }
+    h1 { margin-bottom: 10px; }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    }
+    input {
+      padding: 8px;
+      margin: 5px 10px 10px 0;
+    }
+    button {
+      padding: 8px 15px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+    .paid { color: green; font-weight: bold; }
+    .pending { color: orange; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>Installment Payment Tracker</h1>
+
+<div class="card">
+  <h3>Phone Details</h3>
+  <input id="phone" placeholder="Phone name/model">
+  <input id="price" type="number" placeholder="Total price">
+  <input id="down" type="number" placeholder="Down payment">
+  <button onclick="saveDetails()">Save Details</button>
+</div>
+
+<div class="card">
+  <h3>Summary</h3>
+  <p><strong>Monthly Payment:</strong> ₱<span id="monthly">0</span></p>
+  <p><strong>Paid So Far:</strong> ₱<span id="paidAmount">0</span></p>
+  <p><strong>Remaining Balance:</strong> ₱<span id="remaining">0</span></p>
+</div>
+
+<div class="card">
+  <h3>24-Month Schedule</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Paid?</th>
+      </tr>
+    </thead>
+    <tbody id="schedule"></tbody>
+  </table>
+</div>
+
+<script>
+  let totalMonths = 24;
+  let data = JSON.parse(localStorage.getItem("installmentData")) || {};
+
+  function saveDetails() {
+    data.phone = document.getElementById("phone").value;
+    data.price = parseFloat(document.getElementById("price").value) || 0;
+    data.down = parseFloat(document.getElementById("down").value) || 0;
+
+    data.monthly = ((data.price - data.down) / totalMonths);
+    data.paidMonths = data.paidMonths || [];
+
+    localStorage.setItem("installmentData", JSON.stringify(data));
+    render();
+  }
+
+  function togglePaid(month) {
+    if (!data.paidMonths) data.paidMonths = [];
+
+    if (data.paidMonths.includes(month)) {
+      data.paidMonths = data.paidMonths.filter(m => m !== month);
+    } else {
+      data.paidMonths.push(month);
+    }
+
+    localStorage.setItem("installmentData", JSON.stringify(data));
+    render();
+  }
+
+  function render() {
+    if (!data.price) return;
+
+    document.getElementById("monthly").innerText = data.monthly.toFixed(2);
+
+    let paidAmount = data.monthly * (data.paidMonths?.length || 0);
+    let remaining = (data.price - data.down) - paidAmount;
+
+    document.getElementById("paidAmount").innerText = paidAmount.toFixed(2);
+    document.getElementById("remaining").innerText = remaining.toFixed(2);
+
+    let schedule = document.getElementById("schedule");
+    schedule.innerHTML = "";
+
+    for (let i = 1; i <= totalMonths; i++) {
+      let isPaid = data.paidMonths?.includes(i);
+      schedule.innerHTML += `
+        <tr>
+          <td>${i}</td>
+          <td>₱${data.monthly.toFixed(2)}</td>
+          <td class="${isPaid ? "paid" : "pending"}">
+            ${isPaid ? "Paid" : "Pending"}
+          </td>
+          <td>
+            <input type="checkbox" 
+              ${isPaid ? "checked" : ""} 
+              onchange="togglePaid(${i})">
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  render();
+</script>
+
+</body>
+</html>
